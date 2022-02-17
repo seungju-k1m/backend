@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 
 from copy import deepcopy
-from utils import constructNet
+from .utils import constructNet
 
 
 class Node:
