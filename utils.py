@@ -10,8 +10,8 @@ import _pickle as cPickle
 import torchvision.transforms.functional as TF
 
 from collections import deque
-from baseline.sumtree import SumTree
-from baseline.baseNetwork import (
+from .sumtree import SumTree
+from .NN import (
     MLP,
     CNET,
     LSTMNET,
