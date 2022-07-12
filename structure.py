@@ -1,17 +1,18 @@
+from copy import deepcopy
+
 import torch
 import torch.nn as nn
 
-from copy import deepcopy
 from .utils import constructNet
 
 
 class Node:
     """
-        Node can send output to other nodes, also, collect inputs from others.
-        To do this, node must specify the previous nodes.
-        the id of node is a kind of string name such as "module00"
-        the list of previous nodes is stored when node is initialized
-        Also, node have priority used for controling the forwarding flow.
+    Node can send output to other nodes, also, collect inputs from others.
+    To do this, node must specify the previous nodes.
+    the id of node is a kind of string name such as "module00"
+    the list of previous nodes is stored when node is initialized
+    Also, node have priority used for controling the forwarding flow.
     """
 
     def __init__(self, data: dict):
@@ -28,7 +29,7 @@ class Node:
         prevNodes: list
         self.previousNodes = prevNodes
 
-    def buildModel(self) -> None:
+    def build_model(self) -> None:
         self.model = constructNet(self.data)
 
     def clear_savedOutput(self) -> None:
@@ -58,16 +59,16 @@ class Node:
 
 class model(nn.Module):
     """
-        model can be thought as the collective of nodes.
-        model performs tasks such as
-            1. parse the network infomation.
-            2. build the network which consists of nodes.
-            3. To build optimizer, return the list of weights
-            4. update weights from other identical base Agents.
-            5. return the norm of gradient
-            6. clip the gradients
-            7. LSTM control methods
-            8. Forwarding
+    model can be thought as the collective of nodes.
+    model performs tasks such as
+        1. parse the network infomation.
+        2. build the network which consists of nodes.
+        3. To build optimizer, return the list of weights
+        4. update weights from other identical base Agents.
+        5. return the norm of gradient
+        6. clip the gradients
+        7. LSTM control methods
+        8. Forwarding
     """
 
     def __init__(self, mData: dict):
@@ -86,13 +87,12 @@ class model(nn.Module):
             self.priorityModel,
             self.outputModelName,
             self.inputModelName,
-        ) = self.buildModel()
+        ) = self.build_model()
         self.loadParameters()
         self.priority = list(self.priorityModel.keys())
         self.priority.sort()
-        
 
-    def buildModel(self) -> tuple:
+    def build_model(self) -> tuple:
         priorityModel = {}
         """
             key : priority
@@ -122,16 +122,16 @@ class model(nn.Module):
 
         for name in self.moduleNames:
             data = self.mData[name]
-            if data["netCat"] == "LSTMNET" or data['netCat'] == "GRU":
+            if data["netCat"] == "LSTMNET" or data["netCat"] == "GRU":
                 self.LSTMMODULENAME.append(name)
             data: dict
             name2prior[name] = data["prior"]
             if data["prior"] in priorityModel.keys():
                 priorityModel[data["prior"]][name] = Node(data)
-                priorityModel[data["prior"]][name].buildModel()
+                priorityModel[data["prior"]][name].build_model()
             else:
                 priorityModel[data["prior"]] = {name: Node(data)}
-                priorityModel[data["prior"]][name].buildModel()
+                priorityModel[data["prior"]][name].build_model()
 
             if "output" in data.keys():
                 if data["output"]:
@@ -154,7 +154,9 @@ class model(nn.Module):
                     prevNodes = []
                     for name in prevNodeNames:
                         data = self.mData[name]
-                        prevNodes.append(priorityModel[data["prior"]][name])
+                        prevNodes.append(
+                            priorityModel[data["prior"]][name]
+                        )
                     node.setPrevNodes(prevNodes)
         self.name2prior = name2prior
         return priorityModel, outputModelName, inputModelName
@@ -185,7 +187,9 @@ class model(nn.Module):
                 layerDict = self.priorityModel[prior]
                 for name in layerDict.keys():
                     parameters = layerDict[name].model.parameters()
-                    tParameters = Agent.priorityModel[prior][name].model.parameters()
+                    tParameters = Agent.priorityModel[prior][
+                        name
+                    ].model.parameters()
                     for p, tp in zip(parameters, tParameters):
                         p.copy_((1 - tau) * p + tau * tp)
 
@@ -223,7 +227,7 @@ class model(nn.Module):
                 inputD += list(layerDict[name].model.parameters())
 
         torch.nn.utils.clip_grad_norm_(inputD, maxNorm)
-    
+
     def getParameters(self):
         inputD = []
         for prior in self.priority:
@@ -278,7 +282,9 @@ class model(nn.Module):
             priorityName_InputModel = self.inputModelName[i]
             priorityName_InputModel: list
             for inputinfo in priorityName_InputModel:
-                self.priorityModel[inputinfo[0]][inputinfo[1]].addInput(_input)
+                self.priorityModel[inputinfo[0]][inputinfo[1]].addInput(
+                    _input
+                )
 
         for prior in range(self.priority[-1] + 1):
             for nodeName in self.priorityModel[prior].keys():
@@ -287,7 +293,9 @@ class model(nn.Module):
 
         output = []
         for outinfo in self.outputModelName:
-            out = self.priorityModel[outinfo[0]][outinfo[1]].getStoreOutput()
+            out = self.priorityModel[outinfo[0]][
+                outinfo[1]
+            ].getStoreOutput()
             for o in out:
                 output.append(o)
 

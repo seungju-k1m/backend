@@ -1,6 +1,7 @@
-from . import utils
-from . import NN
-from . import NNArch
-from . import PER
-from . import sumtree
-from . import utils
+import neural_network
+import PER
+import structure
+import sumtree
+import utils
+
+__all__ = ["neural_network", "PER", "structure", "sumtree", "utils"]

@@ -34,9 +34,13 @@ class Node(object):
             self._expand()
             index_center = (index_left + index_right) // 2
             if key < index_center:
-                ret = self.left._write(index_left, index_center, key, value)
+                ret = self.left._write(
+                    index_left, index_center, key, value
+                )
             else:
-                ret = self.right._write(index_center, index_right, key, value)
+                ret = self.right._write(
+                    index_center, index_right, key, value
+                )
             self._reduce()
         return ret
 
@@ -59,7 +63,9 @@ class Node(object):
             if pos < left_value:
                 return self.left._find(index_left, index_center, pos)
             else:
-                return self.right._find(index_center, index_right, pos - left_value)
+                return self.right._find(
+                    index_center, index_right, pos - left_value
+                )
 
 
 class TreeQueue(object):
@@ -88,7 +94,9 @@ class TreeQueue(object):
         ixl, ixr = self.bounds
         root = self.root
         if ixr == self.length:
-            self.root = Node(root.value, self.root, Node(op=self.op), op=self.op)
+            self.root = Node(
+                root.value, self.root, Node(op=self.op), op=self.op
+            )
             ixr += ixr - ixl
             self.bounds = (ixl, ixr)
         ret = self._write(self.length, value)
@@ -133,7 +141,9 @@ class SumTree(TreeQueue):
         if n > 0:
             ixl, ixr = self.bounds
             for _ in range(n):
-                ix = self.root._find(ixl, ixr, np.random.uniform(0.0, self.root.value))
+                ix = self.root._find(
+                    ixl, ixr, np.random.uniform(0.0, self.root.value)
+                )
                 val = self[ix]
                 ixs.append(ix)
                 vals.append(val)

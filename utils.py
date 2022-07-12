@@ -1,41 +1,20 @@
 import gc
-import sys
 import json
-import torch
-import random
 import logging
+import random
+import sys
+from collections import deque
 
-import numpy as np
 import _pickle as cPickle
+import numpy as np
+import torch
 import torchvision.transforms.functional as TF
 
-from collections import deque
+from .NN import (CNET, CNN1D, CNNTP2D, GRU, LSTM, LSTMNET, MLP, RESCONV1D,
+                 RESCONV2D, Add, Attention, AvgPooling, Cat, GovAvgPooling,
+                 Mean, Permute, Select, Stack, Subtrack, Unsequeeze, View,
+                 ViewV2)
 from .sumtree import SumTree
-from .NN import (
-    MLP,
-    CNET,
-    LSTMNET,
-    CNN1D,
-    Cat,
-    Unsequeeze,
-    View,
-    CNNTP2D,
-    GovAvgPooling,
-    RESCONV2D,
-    RESCONV1D,
-    AvgPooling,
-    LSTM,
-    Select,
-    Permute,
-    GRU,
-    Attention,
-    Stack,
-    Subtrack,
-    Add,
-    Mean,
-    ViewV2
-)
-
 
 """
 utils의 경우, 다양한 상황에서 사용되는 기타 method이다.
@@ -63,7 +42,7 @@ def clipByGN(agent, maxNorm):
 def setup_logger(name, log_file, level=logging.INFO):
     """To setup as many loggers as you want"""
 
-    handler = logging.FileHandler(log_file, mode='a')
+    handler = logging.FileHandler(log_file, mode="a")
     stream = logging.StreamHandler()
     # handler.setFormatter(formatter)
 
@@ -83,7 +62,7 @@ def getOptim(optimData, agent, floatV=False):
             name:[str] optimizer의 이름
             lr:[float] learning rate
             decay:[float] decaying(L2 Regularzation)
-            eps:[float], 
+            eps:[float],
             clipping:deprecated
         agent:[tuple, torch.nn], 해당 optimizer가 담당하는 weight들 Agentv1.buildOptim을 통해서 호출
         floatV:[bool], weight이 torch.nn이 아니라 tensor인 경우
@@ -110,49 +89,66 @@ def getOptim(optimData, agent, floatV=False):
             beta1 = 0.9 if "beta1" not in keyList else optimData["beta1"]
             beta2 = 0.99 if "beta2" not in keyList else optimData["beta2"]
             optim = torch.optim.Adam(
-                inputD, lr=lr, weight_decay=decay, eps=eps, betas=(
-                    beta1, beta2)
+                inputD,
+                lr=lr,
+                weight_decay=decay,
+                eps=eps,
+                betas=(beta1, beta2),
             )
         if name == "sgd":
-            momentum = 0 if "momentum" not in keyList else optimData["momentum"]
+            momentum = (
+                0 if "momentum" not in keyList else optimData["momentum"]
+            )
 
             optim = torch.optim.SGD(
                 inputD, lr=lr, weight_decay=decay, momentum=momentum
             )
         if name == "rmsprop":
-            momentum = 0 if "momentum" not in keyList else optimData["momentum"]
-            centered = False if "centered" not in keyList else optimData["centered"]
+            momentum = (
+                0 if "momentum" not in keyList else optimData["momentum"]
+            )
+            centered = (
+                False
+                if "centered" not in keyList
+                else optimData["centered"]
+            )
             alpha = 0.99 if "alpha" not in keyList else optimData["alpha"]
             optim = torch.optim.RMSprop(
-                inputD, lr=lr, weight_decay=decay, eps=eps, momentum=momentum, alpha=alpha, centered=centered
+                inputD,
+                lr=lr,
+                weight_decay=decay,
+                eps=eps,
+                momentum=momentum,
+                alpha=alpha,
+                centered=centered,
             )
 
     return optim
 
 
-def getActivation(actName, **kwargs):
-    if actName == "relu":
+def get_activation_fn(fn_name, **kwargs):
+    if fn_name == "relu":
         act = torch.nn.ReLU()
-    if actName == "leakyRelu":
+    if fn_name == "leakyRelu":
         nSlope = 0.2 if "slope" not in kwargs.keys() else kwargs["slope"]
         act = torch.nn.LeakyReLU(negative_slope=nSlope)
-    if actName == "sigmoid":
+    if fn_name == "sigmoid":
         act = torch.nn.Sigmoid()
-    if actName == "tanh":
+    if fn_name == "tanh":
         act = torch.nn.Tanh()
-    if actName == "linear":
+    if fn_name == "linear":
         act = None
 
     return act
 
 
-def constructNet(netData):
+def constructNet(net_info):
     """
     configuration에 따라 해당 network를 반환
     args:
-        netData:dict
+        net_info:dict
     """
-    netCat = netData["netCat"]
+    netCat = net_info["netCat"]
     if netCat == "Input":
         return None
     Net = [
@@ -177,7 +173,7 @@ def constructNet(netData):
         Subtrack,
         Add,
         Mean,
-        ViewV2
+        ViewV2,
     ]
     netName = [
         "MLP",
@@ -199,14 +195,14 @@ def constructNet(netData):
         "Attention",
         "Stack",
         "Substract",
-        'Add',
+        "Add",
         "Mean",
-        "ViewV2"
+        "ViewV2",
     ]
     ind = netName.index(netCat)
 
     baseNet = Net[ind]
-    network = baseNet(netData)
+    network = baseNet(net_info)
 
     return network
 
